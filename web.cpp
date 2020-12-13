@@ -1,7 +1,4 @@
 ﻿#include <web.h>
-//shared_ptr
-//две трубы на одном месте
-//diam 1m 1.4m
 using namespace std;
 
 web::web(){}
@@ -72,6 +69,11 @@ bool web::rebuild(){
     return !stations.empty();
 }
 
+double web::weight(size_t id){
+    if (pipes[id].under_repair) return numeric_limits<double>::infinity();
+    return pipes[id].length;//pow(pipes[id].diameter, 2.5/pipes[id].length);
+}
+
 void web::print(){
     cout << "\t";
     for (auto i: key_map_id) {
@@ -95,7 +97,7 @@ void web::print(){
 }
 
 bool web::topological_sort(){
-    sort_ts.clear(); colours.clear(); visited.clear();
+    sort.clear(); colours.clear(); visited.clear();
     vector<size_t> temp_key_map;
     for (auto c: key_map_id){
         int temp=0;
@@ -112,11 +114,83 @@ bool web::topological_sort(){
             dfs(v,key_map_id.size()+1);
         }
         cout << "\n";
-        for (auto c: sort_ts)
+        for (auto c: sort)
             cout << "id" << c.first << "_" << c.second << "\n";
         return true;
     } else
         cout<< "cycle\n";
+    return false;
+}
+
+bool web::find_way(size_t to, size_t from){
+    if(!(stations.find(from) != stations.end()) && (stations.find(to) != stations.end())){
+        cout << "ID not found\n";
+        return false;
+    }
+    map<int, pair<double,bool>> dkst;
+    for (auto c: key_map_id)
+        dkst.emplace(c,make_pair(numeric_limits<double>::infinity(),false));
+    std::set<size_t> found;
+    found.insert(from);
+    dkst[int(from)].second=true;
+    dkst[int(from)].first=0;
+    if (!find_neighbor(dkst,found,to))
+        return false;
+    else {
+        cout<<"\nThe shortest path to " << to << " from " << from << " is " << dkst[int(to)].first << "\n";
+        return true;
+    }
+}
+
+bool web::find_neighbor(std::map<int, std::pair<double, bool> > &dkst, set<size_t> found, size_t to){
+    map<int, pair<double,bool>> changes=dkst;
+    set<size_t> check;
+    for (auto f: found)     //для всех найденных ранее вершин
+        for (auto c: key_map_id){ //посмотеть массив есть ли у него соседи
+            if(adj_web[make_pair(f,c)]!=-1 && !dkst[int(c)].second) { //если есть ребро и оно не красное
+                check.emplace(c); //надо посмотреть на следующем шаге
+                dkst[int(c)].first = ITC::min(dkst[int(c)].first, dkst[int(f)].first+weight(adj_web[make_pair(f,c)]));//и проверить вес
+            }
+        }
+    double min=numeric_limits<double>::infinity();
+    int id=-1;
+    size_t is_it_end = 0;
+    for (auto s: dkst){
+        if(!s.second.second){
+            if (min > s.second.first) {
+                min=s.second.first;
+                id=s.first;
+            }
+        } else is_it_end++;
+    }
+    dkst[id].second=true;
+    if (dkst[int(to)].second)   return true; //если нашли путь до искомой
+    if (is_it_end==dkst.size()) return true; //если нашли всё
+    if (dkst==changes)          return false;//если ничего не изменилось
+    return find_neighbor(dkst,check,to);     //продолжить поиск
+}
+
+bool web::dfs(size_t v, size_t ts){
+    ts--;
+    colours[v] = 2; //мы тут были
+    visited[v]++;
+    int temp;
+    for (auto c: key_map_id) { //куда можем попасть смотрим
+        temp = adj_web[make_pair(v,c)];
+        if (temp != -1){ //ребро должно существовать чтобы попасть
+            if (colours[c]!=3 && visited[c]!=2){ //цвет вершины не конец
+                                                               //и не цикл
+                if (colours[c] == 1) {                  //если еще не были
+                    if (dfs(c, ts)) return true;           //идем туда
+                }
+                else { if (colours[c] == 2) return true; } //если были забили
+            }
+        }
+        if (colours[v] == 3) return false; //конечная
+        if (visited[v] == 2) return false; //были два раза
+    }
+    colours[v] = 3; //конечная
+    sort.emplace(v,ts);
     return false;
 }
 
@@ -172,29 +246,8 @@ bool web::fin(string address){
     return true;
 }
 
-
-bool web::dfs(size_t v, size_t ts){
-    ts--;
-    colours[v] = 2; //мы тут были
-    visited[v]++;
-    int temp;
-    for (auto c: key_map_id) { //куда можем попасть смотрим
-        temp = adj_web[make_pair(v,c)];
-        if (temp != -1){ //ребро должно существовать чтобы попасть
-            if (colours[c]!=3 && visited[c]!=2){ //цвет вершины не конец
-                                                               //и не цикл
-                if (colours[c] == 1) {                  //если еще не были
-                    if (dfs(c, ts)) return true;           //идем туда
-                }
-                else { if (colours[c] == 2) return true; } //если были забили
-            }
-        }
-        if (colours[v] == 3) return false; //конечная
-        if (visited[v] == 2) return false; //были два раза
-    }
-    colours[v] = 3; //конечная
-    sort_ts.emplace(v,ts);
-    return false;
+void web::clean(){
+    for (auto v: adj_web) if(v.second!=-1) detach(v.first.first,v.first.second);
 }
 
 void web::delete_st(){
@@ -212,11 +265,6 @@ void web::delete_st(){
         key_map_id.erase(id);
     } else cout << "ID not found\n";
 }
-
-void web::clean(){
-    for (auto v: adj_web) if(v.second!=-1) detach(v.first.first,v.first.second);
-}
-
 
 void web::delete_pipe(){
     size_t id = ITC::check_input_st_int("ID");

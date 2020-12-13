@@ -3,6 +3,8 @@
 #include <station.h>
 #include <pipe.h>
 #include <set>
+#include <cmath>
+#include <numeric>
 
 
 class web { //граф
@@ -13,10 +15,12 @@ private:
     std::set<size_t> key_map_id; //хранит id кс
     std::map<size_t,bool> used_pipes; //хранит состояние труб, к классу медленнее обращаться и не совсем их логика
 
-    std::map<size_t,size_t> sort_ts,colours,visited; //нужен для сортировки
+    std::map<size_t,size_t> sort,colours,visited; //нужен для сортировки
 
     bool dfs(size_t v,size_t ts);
+    bool find_neighbor(std::map<int, std::pair<double, bool>> &dkst, std::set<size_t> found, size_t id);
     bool rebuild();
+    double weight(size_t id);
 public:
     std::map<size_t,ITC::pipe>    pipes;
     std::map<size_t,ITC::station> stations;
@@ -34,6 +38,7 @@ public:
 
     void print();
     bool topological_sort();
+    bool find_way(size_t from, size_t to);
 
     bool fout(std::string);
     bool fin(std::string);

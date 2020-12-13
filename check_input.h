@@ -17,6 +17,8 @@ namespace ITC {
     int check_input_int(std::string); //просим число int
     size_t check_input_st_int(std::string);
     std::string check_input_str(std::string);
-
+    template <class T> const T& min (const T& a, const T& b) {
+      return !(b<a)?a:b;     // or: return !comp(b,a)?a:b; for version (2)
+    }
 }
 

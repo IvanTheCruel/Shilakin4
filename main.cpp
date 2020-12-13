@@ -34,7 +34,7 @@ int main(){
             web.fout(check_input_str("name of file")+".itc");
             break;
         case 9: //load
-            web.fin(check_input_str("name of file")+".itc");
+            web.fin("test.itc");
             break;
         case 10: //delete pipe
             web.delete_pipe();
@@ -53,6 +53,9 @@ int main(){
             break;
         case 15:
             web.topological_sort();
+            break;
+        case 16:
+            web.find_way(check_input_st_int("ID"),check_input_st_int("ID"));
             break;
         }
     }
