@@ -12,6 +12,7 @@ public:
     std::string name;
     double length;
     int diameter;
+    double stream=0;
     bool under_repair = false;
 
     size_t get_id() const;

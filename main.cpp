@@ -57,6 +57,9 @@ int main(){
         case 16:
             web.find_way(check_input_st_int("ID"),check_input_st_int("ID"));
             break;
+        case 17:
+            web.max_flow(check_input_st_int("ID"),check_input_st_int("ID"));
+            break;
         }
     }
 }

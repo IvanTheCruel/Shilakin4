@@ -9,6 +9,13 @@
 
 class web { //граф
     friend std::ofstream& operator<<(std::ofstream&, const web&);
+    struct mark{
+        mark(bool p,size_t id,double fl):positive(p),ID_prev(id),flow(fl){}
+        mark(){}
+        bool positive;
+        size_t ID_prev;
+        double flow;
+    };
 private:
     std::map<std::pair<size_t,size_t>, int> adj_web;
     //std::map<size_t,size_t> key_map_id; //massid, idRC
@@ -21,6 +28,8 @@ private:
     bool find_neighbor(std::map<int, std::pair<double, bool>> &dkst, std::set<size_t> found, size_t id);
     bool rebuild();
     double weight(size_t id);
+    double max_throughput(size_t id);
+    bool step_flow(size_t from, size_t to);
 public:
     std::map<size_t,ITC::pipe>    pipes;
     std::map<size_t,ITC::station> stations;
@@ -28,7 +37,7 @@ public:
     void edit(); //редактировать трубу
 
     bool detach(size_t r, size_t c);
-    void tie_in(size_t r, size_t c, int id);
+    void tie_in(size_t r, size_t c, size_t id);
 
     void add_pipe(bool edit);
     void add_st(bool edit);
@@ -39,6 +48,7 @@ public:
     void print();
     bool topological_sort();
     bool find_way(size_t from, size_t to);
+    bool max_flow(size_t from, size_t to);
 
     bool fout(std::string);
     bool fin(std::string);

@@ -24,17 +24,17 @@ void web::edit(){
 bool web::detach(size_t r, size_t c){
     int pipe_id = adj_web[make_pair(r,c)];
     if (pipe_id != -1) {
-        used_pipes[pipe_id] = false;
+        used_pipes[size_t(pipe_id)] = false;
         adj_web[make_pair(r,c)] = -1;
         return true;
     } else cout << "cannot detach anything\n";
     return false;
 }
 
-void web::tie_in(size_t idr, size_t idc, int id){
+void web::tie_in(size_t idr, size_t idc, size_t id){
     if (used_pipes.find(id) != used_pipes.end()){
         if(adj_web[make_pair(idr,idc)]==-1){
-            adj_web[make_pair(idr,idc)] = id;
+            adj_web[make_pair(idr,idc)]=int(id);
             used_pipes[id] = true;
         } else cout<<"WARNING: already connected\n\n";
     } else cout<<"WARNING: pipe not found\n\n";
@@ -71,6 +71,11 @@ bool web::rebuild(){
 
 double web::weight(size_t id){
     if (pipes[id].under_repair) return numeric_limits<double>::infinity();
+    return pipes[id].length;//pow(pipes[id].diameter, 2.5/pipes[id].length);
+}
+
+double web::max_throughput(size_t id){
+    if (pipes[id].under_repair) return 0;
     return pipes[id].length;//pow(pipes[id].diameter, 2.5/pipes[id].length);
 }
 
@@ -170,6 +175,76 @@ bool web::find_neighbor(std::map<int, std::pair<double, bool> > &dkst, set<size_
     return find_neighbor(dkst,check,to);     //продолжить поиск
 }
 
+bool web::max_flow(size_t from, size_t to){
+    if(!(stations.find(from) != stations.end()) && (stations.find(to) != stations.end())){
+        cout << "ID not found\n";
+        return false;
+    }
+    for (auto p: used_pipes) pipes[p.first].stream=0;
+
+    return step_flow(to, from);
+}
+
+
+bool web::step_flow(size_t from, size_t to){
+    map<size_t,mark> find;
+    set<size_t> check;
+    find.emplace(from, mark(true,from,numeric_limits<double>::infinity()));
+    check.insert(from);
+
+    bool may_be_problem_with_cycle = false;
+    for (auto it = check.begin(); it != check.end();){ //для каждой вершины
+        for (auto j: key_map_id){
+            int pipe_id=adj_web[make_pair(*it,j)];
+            if(pipe_id!=-1 && (find.find(j) == find.end())) //посмотреть нового соседа и чтоб у того не было метки
+                if(max_throughput(size_t(pipe_id))!=pipes[size_t(pipe_id)].stream){ //максимальный поток по трубе и поток сейчас
+                    may_be_problem_with_cycle=true;
+                    check.emplace(j); //надо его посмотреть
+                    find.emplace(j,mark(true,*it,ITC::min(find[*it].flow,max_throughput(size_t(pipe_id))-pipes[size_t(pipe_id)].stream)));
+                }
+            pipe_id=adj_web[make_pair(j,*it)];
+            if(pipe_id!=-1 && (find.find(j) == find.end())) //посмотреть входящих соседей и чтоб у того не было метки
+                if(pipes[size_t(pipe_id)].stream!=0){       //поток сейчас не нулевой
+                    may_be_problem_with_cycle=true;
+                    check.emplace(j); //надо его посмотреть
+                    find.emplace(j,mark(false,*it,ITC::min(find[*it].flow,pipes[size_t(pipe_id)].stream)));
+                }
+        }
+        //проверили вершину и убрали её из искомых
+        auto temp_iter = it;
+        it++; //двинули цикл
+        check.erase(*temp_iter); //удалили
+        if (may_be_problem_with_cycle) {
+            it = check.begin();  //вернули цикл к наименьшей
+            may_be_problem_with_cycle = false;
+        }
+        if (find.find(to)!=find.end()) break;
+        if (check.empty()){
+            double max_flow = 0;
+            for (auto p: used_pipes)
+                if (p.second && pipes[p.first].stream == max_throughput(p.first))
+                    max_flow+=pipes[p.first].stream;
+            if (max_flow==0) {
+                cout << "KS can't deliver liquid to each other\n";
+                return false;
+            } else {
+                cout << "\nmax troughput is " << max_flow << endl;
+                return true;
+            }
+        }
+    }
+    //обратный поток
+    size_t end = to;
+    while(end!=from){
+        size_t pipe_id = size_t(adj_web[make_pair(find[end].ID_prev,end)]);
+        pipes[pipe_id].stream+=find[end].positive?find[end].flow:-find[end].flow;
+        end=find[end].ID_prev;
+    }
+
+    return step_flow(from, to);
+}
+
+
 bool web::dfs(size_t v, size_t ts){
     ts--;
     colours[v] = 2; //мы тут были
@@ -233,7 +308,7 @@ bool web::fin(string address){
         for (auto r: key_map_id){
             for (auto c: key_map_id){
                 fin >> id;
-                if (id != -1) tie_in(r,c,id);
+                if (id != -1) tie_in(r,c,size_t(id));
             }
             fin >> t;
         }

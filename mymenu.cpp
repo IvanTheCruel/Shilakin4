@@ -7,7 +7,7 @@ int ITC::menu(){
                         "7-select stations","8-save","9-load",
                         "10-delete pipe","11-delete station",
                         "12-rebuild web","13-view web","14-edit web",
-                        "15-topological sort","16-find way","0-exit"};
+                        "15-topological sort","16-find way","17-find max troughput","0-exit"};
     cout << "options:\n";
     for (auto t: q){
         cout << t << "\n";
