@@ -45,10 +45,10 @@ template<typename Class>
 bool edit(std::map<size_t,Class>& ps, int id){         
     if (ps.find(id) != ps.end()) {
         ps[id].change();
-        return false;
+        return true;
     } else {
         std::cout << "ID not found\n";
-        return true;
+        return false;
     }
 }
 

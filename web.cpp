@@ -139,10 +139,11 @@ bool web::find_way(size_t to, size_t from){
     found.insert(from);
     dkst[int(from)].second=true;
     dkst[int(from)].first=0;
-    if (!find_neighbor(dkst,found,to))
+    if (!find_neighbor(dkst,found,to)){
+        cout<<"\nCan't find path\n\n";
         return false;
-    else {
-        cout<<"\nThe shortest path to " << to << " from " << from << " is " << dkst[int(to)].first << "\n";
+    } else {
+        cout<<"\nThe shortest path to " << to << " from " << from << " is " << dkst[int(to)].first << "\n\n";
         return true;
     }
 }
